@@ -6,6 +6,38 @@ from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Ticket Date Adjuster", layout="wide")
 st.title("📅 Ticket Date Adjuster — Paste Only")
+
+with st.expander("ℹ️ How to Copy & Paste from ServiceDesk (Click to view instructions)", expanded=False):
+    st.markdown("""
+    ### 📋 Instructions for Copying Ticket Data
+    
+    **Step 1: Copy from ServiceDesk**
+    - Open your ticket in ServiceDesk  
+    - Select the table rows directly from the ticket  
+    - Copy the entire selection (**Ctrl+C**)
+    
+    **Step 2: Paste into the tool**
+    - Paste directly into the text area below (**Ctrl+V**)  
+    - Make sure each row includes: `Index | Date | Table Name`
+    
+    **Example Format:**
+    ```
+    1   2025-10-23   DEV.RAW.NMMS_PUB_MOT_FILES  
+    2   2025-10-23   DEV.RAW.NMMS_pub_gwap  
+    3   2025-10-23   DEV.RAW.NMMS_pub_hvdc_limit_dap  
+    ```
+
+    <div style="text-align: center; margin-top: 15px; margin-bottom: 15px;">
+        <img src="images/demo.png" alt="Demo Example" width="80%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    </div>
+
+    ⚠️ **Important Notes:**
+    - Copy directly from the ticket (not from email or other sources)  
+    - Each row must start with a number and date (`YYYY-MM-DD` format)  
+    - Table names should match the format in ServiceDesk  
+    """, unsafe_allow_html=True)
+    st.image("images/demo.png", caption="Example of copied ticket data", use_container_width=True)
+
 st.write("Paste your ticket text (no upload). The tool will apply your exact minus-rules and return a processed table + downloadable Excel.")
 
 # ---------------------------
