@@ -318,25 +318,17 @@ if 'processed_df' in st.session_state:
             st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px; text-align:center;'><b>{row['IDX']}</b></div>", unsafe_allow_html=True)
         
         with col3:
-            st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px;'><b>{row['TABLE_NAME']}</b></div>", unsafe_allow_html=True)
+            # Use default st.code for reliable copy functionality
+            st.code(row['TABLE_NAME'], language=None)
         
         with col4:
             original_display = row['ORIGINAL_DATE'] if row['ORIGINAL_DATE'] else "-"
             st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px; text-align:center;'>{original_display}</div>", unsafe_allow_html=True)
         
         with col5:
+            # Use default st.code for reliable copy functionality
             if row['RERUN_DATE']:
-                # Create HTML with copy functionality using clipboard API
-                st.markdown(f"""
-                <div style='background-color:{bg_color}; padding:10px; border-radius:4px;'>
-                    <span style='font-weight:bold; font-size:18px;'>{row['RERUN_DATE']}</span>
-                    <button class='copy-btn' onclick='
-                        navigator.clipboard.writeText("{row["RERUN_DATE"]}");
-                        this.innerHTML = "✓";
-                        setTimeout(() => this.innerHTML = "📋", 1000);
-                    ' title='Click to copy'>📋</button>
-                </div>
-                """, unsafe_allow_html=True)
+                st.code(row['RERUN_DATE'], language=None)
             else:
                 st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px; text-align:center;'>-</div>", unsafe_allow_html=True)
         
@@ -516,4 +508,3 @@ st.download_button(
     file_name=f"mapping_rules_{datetime.now().strftime('%Y%m%d')}.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
-                
