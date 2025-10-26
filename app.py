@@ -3,7 +3,28 @@ import pandas as pd
 import re
 from io import BytesIO, StringIO
 from datetime import datetime, timedelta
+def check_password():
+    """Returns `True` if the correct password is entered, else `False`."""
+    def password_entered():
+        if st.session_state["password"] == os.getenv("APP_PASSWORD"):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # don't store the password
+        else:
+            st.session_state["password_correct"] = False
 
+    if "password_correct" not in st.session_state:
+        st.text_input("Enter Password:", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.text_input("Enter Password:", type="password", on_change=password_entered, key="password")
+        st.error("❌ Incorrect password")
+        return False
+    else:
+        return True
+
+# --- Gate the rest of the app ---
+if not check_password():
+    st.stop()
 st.set_page_config(page_title="Ticket Date Adjuster", layout="wide")
 st.title("📅 Ticket Date Adjuster — Paste Only")
 
