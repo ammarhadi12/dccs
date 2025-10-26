@@ -1,21 +1,8 @@
 import streamlit as st
 import pandas as pd
 import re
-import os
 from io import BytesIO, StringIO
 from datetime import datetime, timedelta
-
-APP_PASSWORD = os.getenv("APP_PASSWORD")
-
-st.title("🔐 Internal Access Only")
-
-password = st.text_input("Enter password to continue:", type="password")
-
-if password != APP_PASSWORD:
-    st.warning("Access denied 🚫 — please enter the correct password to continue.")
-    st.stop()
-
-st.success("Access granted ✅ Welcome!")
 
 st.set_page_config(page_title="Ticket Date Adjuster", layout="wide")
 st.title("📅 Ticket Date Adjuster — Paste Only")
@@ -111,6 +98,8 @@ DEV.RAW.NMMS_RTDRESERVESCHEDULE	NOT FOUND
 DEV.RAW.NMMS_RTDSCHEDULES	NOT FOUND
 DEV.RAW.NMMS_TIPCLMP	NOT FOUND
 DEV.RAW.NMMS_PUB_MOT_FILES	Daily
+DEV.RAW.NMMS_ORIGINAL_LWAP	Daily
+DEV.RAW.NMMS_PUB_OUTAGE_SCHEDULE_RTD	Set_Date_Daily
 """
 
 def build_mapping(raw_text):
@@ -136,6 +125,7 @@ MAPPING = build_mapping(raw_mapping_text)
 # mapping to days-to-subtract based on your rule
 rule_to_days = {
     "DAILY": 0,
+    "SET_DATE_DAILY": 0,
     "DAILY_2_AND_1DAYS_AGO": 1,
     "SET_DATE_DAILY_2_AND_1DAYS_AGO": 1,
     "7DAYS_AGO": 7,
@@ -371,3 +361,159 @@ if 'processed_df' in st.session_state:
 
 st.markdown("---")
 st.markdown("**Notes:**\n- Click 📋 beside rerun date to instantly copy to clipboard\n- Check ✓ to mark as completed → **Green** = Done, **Red** = Pending\n- If table shows \"NOT IN THE LOGIC, REFER SHEET\" - check the mapping sheet for correct table name")
+
+st.markdown("---")
+st.markdown("---")
+st.subheader("📋 Table Mapping Rules Reference")
+st.markdown("Below is the complete mapping logic used for calculating rerun dates (same format as source document). Your team can verify the rules here:")
+
+# Create reference table exactly as in the source document
+reference_data = [
+    ("DEV.RAW.NMMS_dcsresourcecompliance", "NOT FOUND"),
+    ("DEV.RAW.NMMS_DIPCLMP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPLMP_DAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPLMP_HAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPLMP_WAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPREGIONALSUMMARY_DAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPREGIONALSUMMARY_HAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPREGIONALSUMMARY_WAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPRESERVESCHEDULE_DAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPRESERVESCHEDULE_HAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPRESERVESCHEDULE_WAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPSCHEDULES_DAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPSCHEDULES_HAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_MPSCHEDULES_WAP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_occresourcecompliancedetail", "NOT FOUND"),
+    ("DEV.RAW.NMMS_OCCRESOURCECOMPLIANCEHOUR", "NOT FOUND"),
+    ("pub_hvdc_limit_wap", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_constraint_violation_hap + DEV.RAW.NMMS_pub_constraint_violation_hap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_constraint_violation_rtd + DEV.RAW.NMMS_pub_constraint_violation_rtd_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_constraint_violation_wap + DEV.RAW.NMMS_pub_constraint_violation_wap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_gwap + DEV.RAW.NMMS_pub_gwap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_limit_dap + DEV.RAW.NMMS_pub_hvdc_limit_dap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_limit_hap + DEV.RAW.NMMS_pub_hvdc_limit_hap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_limit_rtd + DEV.RAW.NMMS_pub_hvdc_limit_rtd_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_limit_wap + DEV.RAW.NMMS_pub_hvdc_limit_wap_reject", "Daily_2days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_schedules_dap + DEV.RAW.NMMS_pub_hvdc_schedules_dap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_schedules_hap + DEV.RAW.NMMS_pub_hvdc_schedules_hap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_schedules_rtd + DEV.RAW.NMMS_pub_hvdc_schedules_rtd_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_hvdc_schedules_wap + DEV.RAW.NMMS_pub_hvdc_schedules_wap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_LWAP + DEV.RAW.NMMS_pub_LWAP_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_market_bids_and_offer_energy + DEV.RAW.NMMS_pub_market_bids_and_offer_energy_reject", "7days_Ago"),
+    ("DEV.RAW.NMMS_pub_market_bids_and_offer_nomination + DEV.RAW.NMMS_pub_market_bids_and_offer_nomination_reject", "7days_Ago"),
+    ("DEV.RAW.NMMS_pub_market_bids_and_offer_reserve + DEV.RAW.NMMS_pub_market_bids_and_offer_reserve_reject", "7days_Ago"),
+    ("DEV.RAW.NMMS_pub_market_clearing_price + DEV.RAW.NMMS_pub_market_clearing_price_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_market_projections_dap + DEV.RAW.NMMS_pub_market_projections_dap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_market_projections_hap + DEV.RAW.NMMS_pub_market_projections_hap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_market_projections_wap + DEV.RAW.NMMS_pub_market_projections_wap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_pmrc + DEV.RAW.NMMS_pub_pmrc_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_realtime_dispatch_prices_and_schedules + DEV.RAW.NMMS_pub_realtime_dispatch_prices_and_schedules_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_realtime_dispatch_reserve_schedules + DEV.RAW.NMMS_pub_realtime_dispatch_reserve_schedules_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_regional_summary_dap + DEV.RAW.NMMS_pub_regional_summary_dap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_regional_summary_hap + DEV.RAW.NMMS_pub_regional_summary_hap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_regional_summary_rtd + DEV.RAW.NMMS_pub_regional_summary_rtd_reject", "Set_Date_Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_regional_summary_wap + DEV.RAW.NMMS_pub_regional_summary_wap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_security_limit_dap + DEV.RAW.NMMS_pub_security_limit_dap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_security_limit_hap + DEV.RAW.NMMS_pub_security_limit_hap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_security_limit_rtd + DEV.RAW.NMMS_pub_security_limit_rtd_reject", "Set_Date_Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_pub_security_limit_wap + DEV.RAW.NMMS_pub_security_limit_wap_reject", "Daily_2_and_1days_Ago"),
+    ("DEV.RAW.NMMS_RTDLMP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_RTDREGIONALSUMMARY", "NOT FOUND"),
+    ("DEV.RAW.NMMS_RTDRESERVESCHEDULE", "NOT FOUND"),
+    ("DEV.RAW.NMMS_RTDSCHEDULES", "NOT FOUND"),
+    ("DEV.RAW.NMMS_TIPCLMP", "NOT FOUND"),
+    ("DEV.RAW.NMMS_PUB_MOT_FILES", "Daily"),
+    ("DEV.RAW.NMMS_ORIGINAL_LWAP", "Daily"),
+    ("DEV.RAW.NMMS_PUB_OUTAGE_SCHEDULE_RTD", "Set_Date_Daily"),
+]
+
+mapping_display = []
+for table, rule in reference_data:
+    days_text = {
+        "DAILY": "0 days (same date)",
+        "SET_DATE_DAILY": "0 days (same date)",
+        "DAILY_2_AND_1DAYS_AGO": "1 day",
+        "SET_DATE_DAILY_2_AND_1DAYS_AGO": "1 day",
+        "7DAYS_AGO": "7 days",
+        "DAILY_2DAYS_AGO": "2 days",
+        "NOT FOUND": "N/A"
+    }.get(rule.upper().replace(" ", "_"), "N/A")
+    
+    mapping_display.append({
+        "Target (Table Name)": table,
+        "Target Data (Rule)": rule,
+        "Days to Subtract": days_text
+    })
+
+mapping_df = pd.DataFrame(mapping_display)
+
+# Quick Stats per Rule - Count paired tables as 1
+st.markdown("### 📊 Quick Statistics per Rule")
+rule_stats = {}
+for table, rule in reference_data:
+    if rule in rule_stats:
+        rule_stats[rule] += 1
+    else:
+        rule_stats[rule] = 1
+
+# Create stats display
+col1, col2, col3, col4, col5, col6 = st.columns(6)
+with col1:
+    st.metric("Daily", rule_stats.get("Daily", 0), help="0 days subtraction")
+with col2:
+    st.metric("Set_Date_Daily", rule_stats.get("Set_Date_Daily", 0), help="0 days subtraction")
+with col3:
+    st.metric("Daily_2_and_1days_Ago", rule_stats.get("Daily_2_and_1days_Ago", 0), help="1 day subtraction")
+with col4:
+    st.metric("Set_Date_Daily_2_and_1days_Ago", rule_stats.get("Set_Date_Daily_2_and_1days_Ago", 0), help="1 day subtraction")
+with col5:
+    st.metric("7days_Ago", rule_stats.get("7days_Ago", 0), help="7 days subtraction")
+with col6:
+    st.metric("NOT FOUND", rule_stats.get("NOT FOUND", 0), help="Not configured")
+
+# Additional stats
+col7, col8 = st.columns(2)
+with col7:
+    st.metric("Daily_2days_Ago", rule_stats.get("Daily_2days_Ago", 0), help="2 days subtraction (Not configured)")
+with col8:
+    st.metric("📋 Total Entries", len(reference_data), help="Total table entries (paired tables counted as 1)")
+
+st.markdown("---")
+st.markdown("**Note:** Paired tables (main + reject) are counted as **1 table entry**")
+st.markdown("---")
+
+# Display with search/filter capability
+st.dataframe(
+    mapping_df,
+    use_container_width=True,
+    height=400,
+    column_config={
+        "Target (Table Name)": st.column_config.TextColumn("Target (Table Name)", width="large"),
+        "Target Data (Rule)": st.column_config.TextColumn("Target Data (Rule)", width="medium"),
+        "Days to Subtract": st.column_config.TextColumn("Days to Subtract", width="medium"),
+    }
+)
+
+st.markdown("""
+**Rule Definitions:**
+- **Daily** = Use the same date (0 days)
+- **Set_Date_Daily** = Use the same date (0 days) - Same as Daily
+- **Daily_2_and_1days_Ago** = Subtract 1 day from the original date
+- **Set_Date_Daily_2_and_1days_Ago** = Subtract 1 day from the original date - Same as Daily_2_and_1days_Ago
+- **Daily_2days_Ago** = Subtract 2 days from the original date (Not configured yet)
+- **7days_Ago** = Subtract 7 days from the original date
+- **NOT FOUND** = Table not configured for automatic rerun date calculation
+""")
+
+# Download mapping as reference
+mapping_excel = BytesIO()
+with pd.ExcelWriter(mapping_excel, engine="xlsxwriter") as writer:
+    mapping_df.to_excel(writer, sheet_name="Mapping_Rules", index=False)
+
+st.download_button(
+    label="⬇️ Download Mapping Rules (Excel)",
+    data=mapping_excel.getvalue(),
+    file_name=f"mapping_rules_{datetime.now().strftime('%Y%m%d')}.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
+                
