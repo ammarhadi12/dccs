@@ -39,7 +39,7 @@ with st.expander("ℹ️ How to Copy & Paste from ServiceDesk (Click to view ins
     - Copy the entire selection (**Ctrl+C**)
     
     **Step 2: Paste into the tool**
-    - Paste directly into the text area below (**Ctrl+V**)  
+    - Paste directly into the text area below (**Ctrl+V**)  / Paste into excel first (if formatting is bad) 
     - Make sure each row includes: `Index | Date | Table Name`
     
     **Example Format:**
@@ -54,8 +54,8 @@ with st.expander("ℹ️ How to Copy & Paste from ServiceDesk (Click to view ins
     </div>
 
     ⚠️ **Important Notes:**
-    - Copy directly from the ticket (not from email or other sources)  
-    - Each row must start with a number and date (`YYYY-MM-DD` format)  
+    - Make sure to include index (1 , 2 , 3) also (refer example)  
+    - Each row must start with a number and date (`YYYY-MM-DD` format) (if the ticket comes in different format, can change in excel)
     - Table names should match the format in ServiceDesk  
     """, unsafe_allow_html=True)
     st.image("images/demo.png", caption="Example of copied ticket data", use_container_width=True)
