@@ -406,12 +406,12 @@ if 'processed_df' in st.session_state:
     )
 
 st.markdown("---")
-st.markdown("**Notes:**\n- Click 📋 beside rerun date to instantly copy to clipboard\n- Check ✓ to mark as completed → **Green** = Done, **Red** = Pending\n- If table shows \"NOT IN THE LOGIC, REFER SHEET\" - check the mapping sheet for correct table name")
+st.markdown("**Notes:**\n- Click 📋 beside rerun date to instantly copy to clipboard\n- Check ✓ to mark as completed → **Green** = Done, **Red** = Pending\n- If table shows \"NOT IN THE LOGIC, REFER SHEET\" - check the mapping sheet for correct table name, If the result is blank means its either a job Maintained by FGEN or the data ruling is not found (refer original workspace file")
 
 st.markdown("---")
 st.markdown("---")
 st.subheader("📋 Table Mapping Rules Reference")
-st.markdown("Below is the complete mapping logic used for calculating rerun dates (same format as source document). Your team can verify the rules here:")
+st.markdown("Below is the complete mapping logic used for calculating rerun dates (same format as source document). Team can verify the rules here:")
 
 # Create reference table exactly as in the source document
 reference_data = [
