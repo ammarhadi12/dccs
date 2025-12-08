@@ -190,7 +190,7 @@ rule_to_days = {
 if 'rerun_status' not in st.session_state:
     st.session_state.rerun_status = {}
 
-st.markdown("**Paste ticket (exact text).** Each data row should start with a row number and the `DATE` (YYYY-MM-DD).")
+st.markdown("**Paste ticket (exact text), RECOMMENDED TO PASTE INTO EXCEL FIRST, THEN COPY THEN ONLY PASTE ON HERE.** Each data row should start with a row number and the `DATE` (YYYY-MM-DD).")
 ticket_text = st.text_area("Paste ticket text here:", height=360, placeholder="Paste ticket rows...")
 
 def normalize_table_name(name: str):
