@@ -205,7 +205,7 @@ st.markdown("""
 <div class="hero-wrap">
     <div class="badge-pill">⚡ Internal Automation Tool</div>
     <div class="hero-title">RerunAI — Ticket Date Adjuster</div>
-    <p class="hero-sub">Paste raw ServiceDesk ticket rows and instantly resolve the correct TMC rerun date
+    <p class="hero-sub">Paste raw DCCS/ServiceDesk email text and instantly resolve the correct TMC rerun date
     for every affected table — no manual date math, no lookup spreadsheets.</p>
     <div class="stat-row">
         <div class="glass-card"><div class="num">60+</div><div class="lbl">Mapped Tables</div></div>
@@ -215,34 +215,27 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-with st.expander("ℹ️ How to Copy & Paste from ServiceDesk", expanded=False):
+with st.expander("ℹ️ How to Copy & Paste DCCS Emails", expanded=False):
     st.markdown("""
-    **Step 1 — Copy from ServiceDesk**
-    Open your ticket, select the table rows, and copy (**Ctrl+C**).
+    **Step 1 — Copy from Gmail / Outlook**
+    Open your DCCS notification email, select all text (**Ctrl+A**), and copy (**Ctrl+C**).
 
     **Step 2 — Paste into the tool**
-    Paste directly into the text area below (**Ctrl+V**), or paste into Excel first if formatting is messy, then copy from there.
+    Paste directly into the text area below (**Ctrl+V**). 
 
-    **Example format:**
-    ```
-    1   2025-10-23   DEV.RAW.NMMS_PUB_MOT_FILES
-    2   2025-10-23   DEV.RAW.NMMS_pub_gwap
-    3   2025-10-23   DEV.RAW.NMMS_pub_hvdc_limit_dap
-    ```
-
-    ⚠️ Each row must start with an index number and a date in `YYYY-MM-DD` format.
+    The parser automatically uses regular expressions to extract `IDX`, `DATE`, and `TABLE_NAME` while ignoring headers and trailing criteria fields!
     """)
 
 st.markdown('<div class="section-label">Input</div>', unsafe_allow_html=True)
-st.markdown("Paste your ticket text below — no file upload needed.")
+st.markdown("Paste your raw email text below — no file upload or IT admin access needed.")
 
 # ---------------------------------------------------------------------------
-# MAPPING RULES (unchanged from original logic)
+# MAPPING RULES
 # ---------------------------------------------------------------------------
 
 @st.cache_data
 def load_mapping():
-    path = Path(__file__).parent / "data" / "mapping_rules.csv"   # adjust path/subfolder to match your repo
+    path = Path(__file__).parent / "data" / "mapping_rules.csv"
     df = pd.read_csv(path)
     df["table_name"] = df["table_name"].astype(str).str.strip().str.upper()
     df["rule"] = df["rule"].astype(str).str.strip()
@@ -263,7 +256,7 @@ rule_to_days = {
 if 'rerun_status' not in st.session_state:
     st.session_state.rerun_status = {}
 
-ticket_text = st.text_area("Paste ticket text here:", height=280, placeholder="Paste ticket rows...")
+ticket_text = st.text_area("Paste email text here:", height=240, placeholder="Good day!\n\nPlease be informed that there are flagged missing/null values...\n\n1 2026-09-16 NMMS_DCSRESOURCECOMPLIANCE 520.0...")
 
 def normalize_table_name(name: str):
     if not isinstance(name, str):
@@ -284,14 +277,20 @@ def find_rule_for_table(table_name: str):
     return None
 
 def parse_ticket_lines(text: str):
-    lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
-    data_lines = [ln for ln in lines if re.match(r"^\s*\d+\s+\d{4}-\d{2}-\d{2}", ln)]
+    """
+    Robust Regex parser that captures:
+    - Group 1: IDX (1 to 2 digits)
+    - Group 2: DATE (YYYY-MM-DD)
+    - Group 3: TABLE_NAME (letters, numbers, underscores)
+    Ignores smashed headers and trailing numerical criteria columns.
+    """
+    pattern = r"(\d{1,2})\s+(\d{4}-\d{2}-\d{2})\s+([A-Za-z0-9_]+)"
+    matches = re.findall(pattern, text)
+    
     rows = []
-    for ln in data_lines:
-        parts = re.split(r"\s{2,}", ln)
-        if len(parts) < 3:
-            parts = re.split(r"\s+", ln, maxsplit=7)
-        rows.append(parts)
+    for match in matches:
+        idx, date_str, table_name = match
+        rows.append([idx, date_str, table_name])
     return rows
 
 col_run, _ = st.columns([1, 5])
@@ -300,19 +299,15 @@ with col_run:
 
 if run_clicked:
     if not ticket_text.strip():
-        st.warning("Paste the ticket text first.")
+        st.warning("Paste the email text first.")
     else:
         try:
             rows = parse_ticket_lines(ticket_text)
             if not rows:
-                st.error("No data rows found. Make sure each row starts with a number and a date (YYYY-MM-DD).")
+                st.error("No valid table rows detected. Make sure the text contains entries like: `1 2026-09-16 NMMS_...`")
             else:
-                max_cols = max(len(r) for r in rows)
-                col_names = ["IDX", "DATE", "TABLE_NAME"] + [f"COL_{i}" for i in range(4, max_cols + 1)]
-                normalized_rows = []
-                for r in rows:
-                    r_padded = r + [""] * (max_cols - len(r))
-                    normalized_rows.append(dict(zip(col_names, r_padded)))
+                col_names = ["IDX", "DATE", "TABLE_NAME"]
+                normalized_rows = [dict(zip(col_names, r)) for r in rows]
                 orig_df = pd.DataFrame(normalized_rows)
 
                 outputs = []
@@ -356,7 +351,6 @@ if run_clicked:
 
         except Exception as e:
             st.error(f"Processing error: {e}")
-            st.info("Ensure rows start with index number and date like: `1 2025-10-23 NMMS_PUB_...`")
 
 # ---------------------------------------------------------------------------
 # RESULTS
@@ -370,7 +364,7 @@ if 'processed_df' in st.session_state:
 
     col1, col2, col3, col4, col5, col6 = st.columns([0.4, 0.6, 3, 1.2, 2, 1.5])
     for c, label in zip([col1, col2, col3, col4, col5, col6],
-                         ["✓", "IDX", "TABLE NAME", "ORIGINAL DATE", "RERUN DATE", "RULE"]):
+                          ["✓", "IDX", "TABLE NAME", "ORIGINAL DATE", "RERUN DATE", "RULE"]):
         c.markdown(f"**{label}**")
     st.markdown("---")
 
