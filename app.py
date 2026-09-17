@@ -278,19 +278,24 @@ def find_rule_for_table(table_name: str):
 
 def parse_ticket_lines(text: str):
     """
-    Robust Regex parser that captures:
-    - Group 1: IDX (1 to 2 digits)
+    Regex designed for raw, space-less smashed text:
+    - Group 1: IDX (1 or 2 digits)
     - Group 2: DATE (YYYY-MM-DD)
-    - Group 3: TABLE_NAME (letters, numbers, underscores)
-    Ignores smashed headers and trailing numerical criteria columns.
+    - Group 3: TABLE_NAME (starts with NMMS_ or letters, stops at numbers/decimals)
     """
-    pattern = r"(\d{1,2})\s+(\d{4}-\d{2}-\d{2})\s+([A-Za-z0-9_]+)"
+    pattern = r"(\d{1,2})(\d{4}-\d{2}-\d{2})([A-Za-z0-9_]+?)(?=\d|\s|$)"
     matches = re.findall(pattern, text)
     
     rows = []
     for match in matches:
         idx, date_str, table_name = match
-        rows.append([idx, date_str, table_name])
+        # Clean up any trailing digits that might get caught
+        table_name = table_name.strip()
+        
+        # Only include valid table entries (skip matches from timestamps)
+        if table_name and not table_name.isdigit():
+            rows.append([idx, date_str, table_name])
+            
     return rows
 
 col_run, _ = st.columns([1, 5])
