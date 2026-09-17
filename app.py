@@ -242,7 +242,7 @@ st.markdown("Paste your ticket text below — no file upload needed.")
 
 @st.cache_data
 def load_mapping():
-    path = Path(__file__).parent / "mapping_rules.csv"   # adjust path/subfolder to match your repo
+    path = Path(__file__).parent / "data" / "mapping_rules.csv"   # adjust path/subfolder to match your repo
     df = pd.read_csv(path)
     df["table_name"] = df["table_name"].astype(str).str.strip().str.upper()
     df["rule"] = df["rule"].astype(str).str.strip()
