@@ -2,70 +2,242 @@ import streamlit as st
 import pandas as pd
 import os
 import re
-from io import BytesIO, StringIO
+from io import BytesIO
 from datetime import datetime, timedelta
+
+st.set_page_config(page_title="RerunAI — Ticket Date Adjuster", layout="wide", page_icon="⚡")
+
+# ---------------------------------------------------------------------------
+# THEME / STYLE — "AI startup" look: dark base, gradient accents, glass cards
+# ---------------------------------------------------------------------------
+def inject_theme():
+    st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+        :root {
+            --bg-0: #0b0e14;
+            --bg-1: #11151f;
+            --bg-2: #171c29;
+            --border: rgba(255,255,255,0.08);
+            --text-1: #f2f4f8;
+            --text-2: #9aa3b5;
+            --accent-1: #7c5cff;
+            --accent-2: #22d3ee;
+            --ok: #22c55e;
+            --warn: #ef4444;
+            --gradient: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+        }
+
+        html, body, [class*="css"]  {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .stApp {
+            background: radial-gradient(circle at 20% -10%, #1a1f33 0%, var(--bg-0) 45%) fixed;
+            color: var(--text-1);
+        }
+
+        h1, h2, h3, .hero-title {
+            font-family: 'Space Grotesk', sans-serif !important;
+        }
+
+        /* ---------- Hero section ---------- */
+        .hero-wrap {
+            padding: 2.2rem 2rem 1.8rem 2rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(124,92,255,0.10), rgba(34,211,238,0.06));
+            margin-bottom: 1.6rem;
+        }
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 999px;
+            background: rgba(124,92,255,0.15);
+            border: 1px solid rgba(124,92,255,0.35);
+            color: #c9bdff;
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            margin-bottom: 14px;
+        }
+        .hero-title {
+            font-size: 2.4rem;
+            font-weight: 700;
+            line-height: 1.15;
+            margin: 0 0 8px 0;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-sub {
+            color: var(--text-2);
+            font-size: 1.02rem;
+            max-width: 640px;
+            margin-bottom: 0;
+        }
+
+        /* ---------- Stat / glass cards ---------- */
+        .stat-row { display: flex; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
+        .glass-card {
+            flex: 1;
+            min-width: 150px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 18px;
+            backdrop-filter: blur(6px);
+        }
+        .glass-card .num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-1);
+        }
+        .glass-card .lbl {
+            color: var(--text-2);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        /* ---------- Section headers ---------- */
+        .section-label {
+            display: inline-block;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-2);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        /* ---------- Streamlit widget overrides ---------- */
+        .stTextArea textarea {
+            background: var(--bg-2) !important;
+            color: var(--text-1) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            font-family: 'Inter', monospace;
+        }
+        .stButton > button {
+            background: var(--gradient) !important;
+            color: #0b0e14 !important;
+            font-weight: 600 !important;
+            border: none !important;
+            border-radius: 10px !important;
+            padding: 0.55rem 1.4rem !important;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+        .stButton > button:hover {
+            transform: translateY(-1px);
+            opacity: 0.92;
+        }
+        .stDownloadButton > button {
+            background: transparent !important;
+            color: var(--accent-2) !important;
+            border: 1px solid rgba(34,211,238,0.4) !important;
+            border-radius: 10px !important;
+            font-weight: 600 !important;
+        }
+        div[data-testid="stDataFrame"] {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .stExpander {
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            background: rgba(255,255,255,0.02);
+        }
+        .status-chip {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+        }
+        .status-chip.done { background: rgba(34,197,94,0.16); color: #4ade80; border: 1px solid rgba(34,197,94,0.35); }
+        .status-chip.pending { background: rgba(239,68,68,0.14); color: #f87171; border: 1px solid rgba(239,68,68,0.35); }
+        footer {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
+
+inject_theme()
+
+# ---------------------------------------------------------------------------
+# AUTH GATE
+# ---------------------------------------------------------------------------
 def check_password():
-    """Returns `True` if the correct password is entered, else `False`."""
     def password_entered():
         if st.session_state["password"] == os.getenv("APP_PASSWORD"):
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # don't store the password
+            del st.session_state["password"]
         else:
             st.session_state["password_correct"] = False
 
     if "password_correct" not in st.session_state:
+        st.markdown('<div class="badge-pill">🔒 Secure Access</div>', unsafe_allow_html=True)
         st.text_input("Enter Password:", type="password", on_change=password_entered, key="password")
         return False
     elif not st.session_state["password_correct"]:
+        st.markdown('<div class="badge-pill">🔒 Secure Access</div>', unsafe_allow_html=True)
         st.text_input("Enter Password:", type="password", on_change=password_entered, key="password")
         st.error("❌ Incorrect password")
         return False
     else:
         return True
 
-# --- Gate the rest of the app ---
 if not check_password():
     st.stop()
-st.set_page_config(page_title="Ticket Date Adjuster", layout="wide")
-st.title("📅 Ticket Date Adjuster — Paste Only")
 
-with st.expander("ℹ️ How to Copy & Paste from ServiceDesk (Click to view instructions)", expanded=False):
-    st.markdown("""
-    ### 📋 Instructions for Copying Ticket Data
-    
-    **Step 1: Copy from ServiceDesk**
-    - Open your ticket in ServiceDesk  
-    - Select the table rows directly from the ticket  
-    - Copy the entire selection (**Ctrl+C**)
-    
-    **Step 2: Paste into the tool**
-    - Paste directly into the text area below (**Ctrl+V**)  / Paste into excel first (if formatting is bad) 
-    - Make sure each row includes: `Index | Date | Table Name`
-    
-    **Example Format:**
-    ```
-    1   2025-10-23   DEV.RAW.NMMS_PUB_MOT_FILES  
-    2   2025-10-23   DEV.RAW.NMMS_pub_gwap  
-    3   2025-10-23   DEV.RAW.NMMS_pub_hvdc_limit_dap  
-    ```
-
-    <div style="text-align: center; margin-top: 15px; margin-bottom: 15px;">
-        <img src="images/demo.png" alt="Demo Example" width="80%" style="border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+# ---------------------------------------------------------------------------
+# HERO SECTION
+# ---------------------------------------------------------------------------
+st.markdown("""
+<div class="hero-wrap">
+    <div class="badge-pill">⚡ Internal Automation Tool</div>
+    <div class="hero-title">RerunAI — Ticket Date Adjuster</div>
+    <p class="hero-sub">Paste raw ServiceDesk ticket rows and instantly resolve the correct TMC rerun date
+    for every affected table — no manual date math, no lookup spreadsheets.</p>
+    <div class="stat-row">
+        <div class="glass-card"><div class="num">60+</div><div class="lbl">Mapped Tables</div></div>
+        <div class="glass-card"><div class="num">5</div><div class="lbl">Rerun Rules</div></div>
+        <div class="glass-card"><div class="num">&lt;1s</div><div class="lbl">Processing Time</div></div>
     </div>
+</div>
+""", unsafe_allow_html=True)
 
-    ⚠️ **Important Notes:**
-    - Make sure to include index (1 , 2 , 3) also (refer example)  
-    - Each row must start with a number and date (`YYYY-MM-DD` format) (if the ticket comes in different format, can change in excel)
-    - Table names should match the format in ServiceDesk  
-    """, unsafe_allow_html=True)
-    st.image("images/demo.png", caption="Example of copied ticket data", use_container_width=True)
+with st.expander("ℹ️ How to Copy & Paste from ServiceDesk", expanded=False):
+    st.markdown("""
+    **Step 1 — Copy from ServiceDesk**
+    Open your ticket, select the table rows, and copy (**Ctrl+C**).
 
-st.write("Paste your ticket text (no upload). The tool will apply your exact minus-rules and return a processed table + downloadable Excel.")
+    **Step 2 — Paste into the tool**
+    Paste directly into the text area below (**Ctrl+V**), or paste into Excel first if formatting is messy, then copy from there.
 
-# ---------------------------
-# Hard-coded mapping from the list you provided.
-# Keys are normalized (upper, trimmed). Multiple names separated by newline are split into individual keys.
-# ---------------------------
+    **Example format:**
+    ```
+    1   2025-10-23   DEV.RAW.NMMS_PUB_MOT_FILES
+    2   2025-10-23   DEV.RAW.NMMS_pub_gwap
+    3   2025-10-23   DEV.RAW.NMMS_pub_hvdc_limit_dap
+    ```
+
+    ⚠️ Each row must start with an index number and a date in `YYYY-MM-DD` format.
+    """)
+
+st.markdown('<div class="section-label">Input</div>', unsafe_allow_html=True)
+st.markdown("Paste your ticket text below — no file upload needed.")
+
+# ---------------------------------------------------------------------------
+# MAPPING RULES (unchanged from original logic)
+# ---------------------------------------------------------------------------
 raw_mapping_text = r"""
 DEV.RAW.NMMS_dcsresourcecompliance	NOT FOUND
 DEV.RAW.NMMS_DIPCLMP	NOT FOUND
@@ -159,24 +331,20 @@ DEV.RAW.NMMS_PUB_OUTAGE_SCHEDULE_RTD	Set_Date_Daily
 def build_mapping(raw_text):
     rules = {}
     for line in [l.strip() for l in raw_text.splitlines() if l.strip()]:
-        # split at last tab or multiple spaces
         parts = re.split(r"\t+", line)
         if len(parts) == 1:
             parts = re.split(r"\s{2,}", line)
         if len(parts) >= 2:
             key_part = parts[0].strip().strip('"')
             val_part = parts[-1].strip()
-            # key_part may contain newline-separated multiple keys, split them
             keys = [k.strip().strip('"') for k in re.split(r"\n+", key_part) if k.strip()]
             for k in keys:
-                # normalize
                 norm = k.upper()
                 rules[norm] = val_part
     return rules
 
 MAPPING = build_mapping(raw_mapping_text)
 
-# mapping to days-to-subtract based on your rule
 rule_to_days = {
     "DAILY": 0,
     "SET_DATE_DAILY": 0,
@@ -186,91 +354,69 @@ rule_to_days = {
     "NOT FOUND": None
 }
 
-# Initialize session state for tracking rerun status
 if 'rerun_status' not in st.session_state:
     st.session_state.rerun_status = {}
 
-st.markdown("**Paste ticket (exact text), RECOMMENDED TO PASTE INTO EXCEL FIRST, THEN COPY THEN ONLY PASTE ON HERE.** Each data row should start with a row number and the `DATE` (YYYY-MM-DD).")
-ticket_text = st.text_area("Paste ticket text here:", height=360, placeholder="Paste ticket rows...")
+ticket_text = st.text_area("Paste ticket text here:", height=280, placeholder="Paste ticket rows...")
 
 def normalize_table_name(name: str):
     if not isinstance(name, str):
         return ""
-    n = name.strip().upper()
-    # if user pasted a short name (no DEV.RAW), add a suffix match attempt later
-    return n
+    return name.strip().upper()
 
 def find_rule_for_table(table_name: str):
-    """
-    Try various matching strategies:
-      1) exact match on normalized name
-      2) try adding or removing DEV.RAW. prefix
-      3) substring match (mapping key in table_name or table_name in mapping key)
-    """
     n = table_name.upper()
-    # exact
     if n in MAPPING:
         return MAPPING[n]
-    # try with DEV.RAW. prefix
     if not n.startswith("DEV.RAW.") and f"DEV.RAW.{n}" in MAPPING:
         return MAPPING[f"DEV.RAW.{n}"]
-    # try without DEV.RAW.
     if n.startswith("DEV.RAW.") and n.replace("DEV.RAW.", "") in MAPPING:
         return MAPPING[n.replace("DEV.RAW.", "")]
-    # substring matches (prefer longer mapping keys)
-    for k in sorted(MAPPING.keys(), key=lambda x:-len(x)):
+    for k in sorted(MAPPING.keys(), key=lambda x: -len(x)):
         if k in n or n in k:
             return MAPPING[k]
     return None
 
 def parse_ticket_lines(text: str):
     lines = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
-    data_lines = []
-    for ln in lines:
-        # pick lines that begin with an index number and a date YYYY-MM-DD (as your sample)
-        if re.match(r"^\s*\d+\s+\d{4}-\d{2}-\d{2}", ln):
-            data_lines.append(ln)
-    # split rows by two or more spaces (keeps table name intact)
+    data_lines = [ln for ln in lines if re.match(r"^\s*\d+\s+\d{4}-\d{2}-\d{2}", ln)]
     rows = []
     for ln in data_lines:
         parts = re.split(r"\s{2,}", ln)
-        # if splitting didn't work (maybe single spaces), fallback to whitespace split but keep first 3 col grouping
         if len(parts) < 3:
             parts = re.split(r"\s+", ln, maxsplit=7)
         rows.append(parts)
     return rows
 
-if st.button("🔁 Process pasted ticket"):
+col_run, _ = st.columns([1, 5])
+with col_run:
+    run_clicked = st.button("⚡ Process Ticket")
+
+if run_clicked:
     if not ticket_text.strip():
         st.warning("Paste the ticket text first.")
     else:
         try:
             rows = parse_ticket_lines(ticket_text)
             if not rows:
-                st.error("No data rows found. Make sure each data row starts with a number and a date (YYYY-MM-DD).")
+                st.error("No data rows found. Make sure each row starts with a number and a date (YYYY-MM-DD).")
             else:
-                # Build a DataFrame with flexible columns
                 max_cols = max(len(r) for r in rows)
-                col_names = ["IDX", "DATE", "TABLE_NAME"] + [f"COL_{i}" for i in range(4, max_cols+1)]
+                col_names = ["IDX", "DATE", "TABLE_NAME"] + [f"COL_{i}" for i in range(4, max_cols + 1)]
                 normalized_rows = []
                 for r in rows:
-                    # pad
                     r_padded = r + [""] * (max_cols - len(r))
-                    rowd = dict(zip(col_names, r_padded))
-                    normalized_rows.append(rowd)
+                    normalized_rows.append(dict(zip(col_names, r_padded)))
                 orig_df = pd.DataFrame(normalized_rows)
 
-                # compute mapping and rerun date
                 outputs = []
                 for _, r in orig_df.iterrows():
                     tbl = str(r["TABLE_NAME"]).strip()
                     norm_tbl = normalize_table_name(tbl)
                     rule = find_rule_for_table(norm_tbl)
-                    status = ""
-                    original_date_formatted = ""
                     date_str = str(r["DATE"]).strip()
                     original_date_formatted = date_str
-                    
+
                     if rule is None:
                         status = "NOT IN THE LOGIC, REFER SHEET"
                         rerun = ""
@@ -284,7 +430,6 @@ if st.button("🔁 Process pasted ticket"):
                             try:
                                 dt = datetime.strptime(date_str, "%Y-%m-%d")
                                 rerun_dt = dt - timedelta(days=days)
-                                # Format as YYYYMMDD for TMC
                                 rerun = rerun_dt.strftime("%Y%m%d")
                                 status = "OK"
                             except Exception as e:
@@ -299,105 +444,70 @@ if st.button("🔁 Process pasted ticket"):
                     })
                     outputs.append(out)
 
-                processed_df = pd.DataFrame(outputs)
-                st.session_state.processed_df = processed_df
+                st.session_state.processed_df = pd.DataFrame(outputs)
                 st.session_state.orig_df = orig_df
-                # Reset rerun status when new ticket is processed
                 st.session_state.rerun_status = {}
 
         except Exception as e:
             st.error(f"Processing error: {e}")
             st.info("Ensure rows start with index number and date like: `1 2025-10-23 NMMS_PUB_...`")
 
-# Display results if processed
+# ---------------------------------------------------------------------------
+# RESULTS
+# ---------------------------------------------------------------------------
 if 'processed_df' in st.session_state:
-    st.subheader("Original (parsed preview)")
+    st.markdown('<div class="section-label">Parsed Input</div>', unsafe_allow_html=True)
     st.dataframe(st.session_state.orig_df, use_container_width=True)
 
-    st.subheader("Processed (with RERUN_DATE and Status)")
-    
-    # Add custom CSS for copy button
-    st.markdown("""
-    <style>
-    .copy-btn {
-        cursor: pointer;
-        padding: 4px 8px;
-        background: transparent;
-        border: none;
-        font-size: 16px;
-    }
-    .copy-btn:hover {
-        opacity: 0.7;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Display headers
+    st.markdown('<div class="section-label">Results</div>', unsafe_allow_html=True)
+    st.markdown("Rerun dates calculated below. Mark each as done once processed in TMC.")
+
     col1, col2, col3, col4, col5, col6 = st.columns([0.4, 0.6, 3, 1.2, 2, 1.5])
-    with col1:
-        st.markdown("**✓**")
-    with col2:
-        st.markdown("**IDX**")
-    with col3:
-        st.markdown("**TABLE NAME**")
-    with col4:
-        st.markdown("**ORIGINAL DATE**")
-    with col5:
-        st.markdown("**RERUN DATE**")
-    with col6:
-        st.markdown("**RULE**")
-    
+    for c, label in zip([col1, col2, col3, col4, col5, col6],
+                         ["✓", "IDX", "TABLE NAME", "ORIGINAL DATE", "RERUN DATE", "RULE"]):
+        c.markdown(f"**{label}**")
     st.markdown("---")
-    
-    # Display processed data with interactive controls
+
     for idx, row in st.session_state.processed_df.iterrows():
         row_key = f"{idx}_{row['TABLE_NAME']}_{row['RERUN_DATE']}"
-        
-        # Get current status, default to False (unchecked/red)
         is_completed = st.session_state.rerun_status.get(row_key, False)
-        
-        # Color coding: green for completed, red for not completed
-        bg_color = "#d4edda" if is_completed else "#f8d7da"
-        
+        chip_class = "done" if is_completed else "pending"
+
         col1, col2, col3, col4, col5, col6 = st.columns([0.4, 0.6, 3, 1.2, 2, 1.5])
-        
+
         with col1:
-            # Checkbox that updates status immediately
             new_status = st.checkbox("", value=is_completed, key=f"check_{row_key}", label_visibility="collapsed")
             if new_status != is_completed:
                 st.session_state.rerun_status[row_key] = new_status
                 st.rerun()
-        
+
         with col2:
-            st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px; text-align:center;'><b>{row['IDX']}</b></div>", unsafe_allow_html=True)
-        
+            st.markdown(f"<div class='status-chip {chip_class}'>{row['IDX']}</div>", unsafe_allow_html=True)
+
         with col3:
-            # Use default st.code for reliable copy functionality
             st.code(row['TABLE_NAME'], language=None)
-        
+
         with col4:
             original_display = row['ORIGINAL_DATE'] if row['ORIGINAL_DATE'] else "-"
-            st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px; text-align:center;'>{original_display}</div>", unsafe_allow_html=True)
-        
+            st.markdown(f"<div class='status-chip {chip_class}'>{original_display}</div>", unsafe_allow_html=True)
+
         with col5:
-            # Use default st.code for reliable copy functionality
             if row['RERUN_DATE']:
                 st.code(row['RERUN_DATE'], language=None)
             else:
-                st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px; text-align:center;'>-</div>", unsafe_allow_html=True)
-        
+                st.markdown(f"<div class='status-chip {chip_class}'>-</div>", unsafe_allow_html=True)
+
         with col6:
-            st.markdown(f"<div style='background-color:{bg_color}; padding:10px; border-radius:4px; font-size:0.85em;'>{row['Mapped_Rule']}</div>", unsafe_allow_html=True)
-    
+            st.markdown(f"<div class='glass-card' style='padding:8px 12px; font-size:0.82em;'>{row['Mapped_Rule']}</div>", unsafe_allow_html=True)
+
     st.markdown("---")
-    st.markdown("**Legend:** 🔴 Red = Not yet rerun | 🟢 Green = Already rerun | Check the box to mark as complete")
-    
-    # prepare Excel with two sheets
+    st.markdown("**Legend:** 🟢 Green = Already rerun · 🔴 Red = Not yet rerun · Check the box to mark complete")
+
     output = BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         st.session_state.orig_df.to_excel(writer, sheet_name="Original_Ticket", index=False)
         st.session_state.processed_df.to_excel(writer, sheet_name="Processed_Ticket", index=False)
-    
+
     st.download_button(
         label="⬇️ Download Excel (Original + Processed)",
         data=output.getvalue(),
@@ -406,14 +516,19 @@ if 'processed_df' in st.session_state:
     )
 
 st.markdown("---")
-st.markdown("**Notes:**\n- Click 📋 beside rerun date to instantly copy to clipboard\n- Check ✓ to mark as completed → **Green** = Done, **Red** = Pending\n- If table shows \"NOT IN THE LOGIC, REFER SHEET\" - check the mapping sheet for correct table name, If the result is blank means its either a job Maintained by FGEN or the data ruling is not found (refer original workspace file")
+st.markdown(
+    "**Notes:** Check ✓ to mark completed. If a table shows *NOT IN THE LOGIC, REFER SHEET* — check the "
+    "mapping table below. A blank result usually means the job is maintained by FGEN or the rule isn't mapped yet."
+)
 
+# ---------------------------------------------------------------------------
+# MAPPING REFERENCE
+# ---------------------------------------------------------------------------
 st.markdown("---")
-st.markdown("---")
-st.subheader("📋 Table Mapping Rules Reference")
-st.markdown("Below is the complete mapping logic used for calculating rerun dates (same format as source document). Team can verify the rules here:")
+st.markdown('<div class="section-label">Reference</div>', unsafe_allow_html=True)
+st.subheader("Table Mapping Rules")
+st.markdown("Complete mapping logic used to calculate rerun dates.")
 
-# Create reference table exactly as in the source document
 reference_data = [
     ("DEV.RAW.NMMS_dcsresourcecompliance", "NOT FOUND"),
     ("DEV.RAW.NMMS_DIPCLMP", "NOT FOUND"),
@@ -484,7 +599,6 @@ for table, rule in reference_data:
         "DAILY_2DAYS_AGO": "2 days",
         "NOT FOUND": "N/A"
     }.get(rule.upper().replace(" ", "_"), "N/A")
-    
     mapping_display.append({
         "Target (Table Name)": table,
         "Target Data (Rule)": rule,
@@ -493,42 +607,28 @@ for table, rule in reference_data:
 
 mapping_df = pd.DataFrame(mapping_display)
 
-# Quick Stats per Rule - Count paired tables as 1
-st.markdown("### 📊 Quick Statistics per Rule")
+st.markdown('<div class="section-label">Quick Stats</div>', unsafe_allow_html=True)
 rule_stats = {}
 for table, rule in reference_data:
-    if rule in rule_stats:
-        rule_stats[rule] += 1
-    else:
-        rule_stats[rule] = 1
+    rule_stats[rule] = rule_stats.get(rule, 0) + 1
 
-# Create stats display
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-with col1:
-    st.metric("Daily", rule_stats.get("Daily", 0), help="0 days subtraction")
-with col2:
-    st.metric("Set_Date_Daily", rule_stats.get("Set_Date_Daily", 0), help="0 days subtraction")
-with col3:
-    st.metric("Daily_2_and_1days_Ago", rule_stats.get("Daily_2_and_1days_Ago", 0), help="1 day subtraction")
-with col4:
-    st.metric("Set_Date_Daily_2_and_1days_Ago", rule_stats.get("Set_Date_Daily_2_and_1days_Ago", 0), help="1 day subtraction")
-with col5:
-    st.metric("7days_Ago", rule_stats.get("7days_Ago", 0), help="7 days subtraction")
-with col6:
-    st.metric("NOT FOUND", rule_stats.get("NOT FOUND", 0), help="Not configured")
+stat_cols = st.columns(6)
+stat_defs = [
+    ("Daily", "0 days"),
+    ("Set_Date_Daily", "0 days"),
+    ("Daily_2_and_1days_Ago", "1 day"),
+    ("Set_Date_Daily_2_and_1days_Ago", "1 day"),
+    ("7days_Ago", "7 days"),
+    ("NOT FOUND", "Not configured"),
+]
+for c, (rule, help_text) in zip(stat_cols, stat_defs):
+    c.metric(rule, rule_stats.get(rule, 0), help=help_text)
 
-# Additional stats
-col7, col8 = st.columns(2)
-with col7:
-    st.metric("Daily_2days_Ago", rule_stats.get("Daily_2days_Ago", 0), help="2 days subtraction (Not configured)")
-with col8:
-    st.metric("📋 Total Entries", len(reference_data), help="Total table entries (paired tables counted as 1)")
+stat_cols2 = st.columns(2)
+stat_cols2[0].metric("Daily_2days_Ago", rule_stats.get("Daily_2days_Ago", 0), help="2 days (not configured)")
+stat_cols2[1].metric("Total Entries", len(reference_data), help="Paired tables counted once")
 
 st.markdown("---")
-st.markdown("**Note:** Paired tables (main + reject) are counted as **1 table entry**")
-st.markdown("---")
-
-# Display with search/filter capability
 st.dataframe(
     mapping_df,
     use_container_width=True,
@@ -542,16 +642,13 @@ st.dataframe(
 
 st.markdown("""
 **Rule Definitions:**
-- **Daily** = Use the same date (0 days)
-- **Set_Date_Daily** = Use the same date (0 days) - Same as Daily
-- **Daily_2_and_1days_Ago** = Subtract 1 day from the original date
-- **Set_Date_Daily_2_and_1days_Ago** = Subtract 1 day from the original date - Same as Daily_2_and_1days_Ago
-- **Daily_2days_Ago** = Subtract 2 days from the original date (Not configured yet)
-- **7days_Ago** = Subtract 7 days from the original date
-- **NOT FOUND** = Table not configured for automatic rerun date calculation
+- **Daily / Set_Date_Daily** — same date (0 days)
+- **Daily_2_and_1days_Ago / Set_Date_Daily_2_and_1days_Ago** — subtract 1 day
+- **Daily_2days_Ago** — subtract 2 days (not configured yet)
+- **7days_Ago** — subtract 7 days
+- **NOT FOUND** — table not configured for automatic rerun date calculation
 """)
 
-# Download mapping as reference
 mapping_excel = BytesIO()
 with pd.ExcelWriter(mapping_excel, engine="xlsxwriter") as writer:
     mapping_df.to_excel(writer, sheet_name="Mapping_Rules", index=False)
