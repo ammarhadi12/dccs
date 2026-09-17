@@ -1,0 +1,57 @@
+table_name,rule,group_id
+DEV.RAW.NMMS_dcsresourcecompliance,NOT FOUND,1
+DEV.RAW.NMMS_DIPCLMP,NOT FOUND,2
+DEV.RAW.NMMS_MPLMP_DAP,NOT FOUND,3
+DEV.RAW.NMMS_MPLMP_HAP,NOT FOUND,4
+DEV.RAW.NMMS_MPLMP_WAP,NOT FOUND,5
+DEV.RAW.NMMS_MPREGIONALSUMMARY_DAP,NOT FOUND,6
+DEV.RAW.NMMS_MPREGIONALSUMMARY_HAP,NOT FOUND,7
+DEV.RAW.NMMS_MPREGIONALSUMMARY_WAP,NOT FOUND,8
+DEV.RAW.NMMS_MPRESERVESCHEDULE_DAP,NOT FOUND,9
+DEV.RAW.NMMS_MPRESERVESCHEDULE_HAP,NOT FOUND,10
+DEV.RAW.NMMS_MPRESERVESCHEDULE_WAP,NOT FOUND,11
+DEV.RAW.NMMS_MPSCHEDULES_DAP,NOT FOUND,12
+DEV.RAW.NMMS_MPSCHEDULES_HAP,NOT FOUND,13
+DEV.RAW.NMMS_MPSCHEDULES_WAP,NOT FOUND,14
+DEV.RAW.NMMS_occresourcecompliancedetail,NOT FOUND,15
+DEV.RAW.NMMS_OCCRESOURCECOMPLIANCEHOUR,NOT FOUND,16
+pub_hvdc_limit_wap,Daily_2_and_1days_Ago,17
+DEV.RAW.NMMS_pub_constraint_violation_hap_reject,Daily_2_and_1days_Ago,18
+DEV.RAW.NMMS_pub_constraint_violation_rtd_reject,Daily_2_and_1days_Ago,19
+DEV.RAW.NMMS_pub_constraint_violation_wap_reject,Daily_2_and_1days_Ago,20
+DEV.RAW.NMMS_pub_gwap_reject,Daily_2_and_1days_Ago,21
+DEV.RAW.NMMS_pub_hvdc_limit_dap_reject,Daily_2_and_1days_Ago,22
+DEV.RAW.NMMS_pub_hvdc_limit_hap_reject,Daily_2_and_1days_Ago,23
+DEV.RAW.NMMS_pub_hvdc_limit_rtd_reject,Daily_2_and_1days_Ago,24
+DEV.RAW.NMMS_pub_hvdc_limit_wap_reject,Daily_2days_Ago,25
+DEV.RAW.NMMS_pub_hvdc_schedules_dap_reject,Daily_2_and_1days_Ago,26
+DEV.RAW.NMMS_pub_hvdc_schedules_hap_reject,Daily_2_and_1days_Ago,27
+DEV.RAW.NMMS_pub_hvdc_schedules_rtd_reject,Daily_2_and_1days_Ago,28
+DEV.RAW.NMMS_pub_hvdc_schedules_wap_reject,Daily_2_and_1days_Ago,29
+DEV.RAW.NMMS_pub_LWAP_reject,Daily_2_and_1days_Ago,30
+DEV.RAW.NMMS_pub_market_bids_and_offer_energy_reject,7days_Ago,31
+DEV.RAW.NMMS_pub_market_bids_and_offer_nomination_reject,7days_Ago,32
+DEV.RAW.NMMS_pub_market_bids_and_offer_reserve_reject,7days_Ago,33
+DEV.RAW.NMMS_pub_market_clearing_price_reject,Daily_2_and_1days_Ago,34
+DEV.RAW.NMMS_pub_market_projections_dap_reject,Daily_2_and_1days_Ago,35
+DEV.RAW.NMMS_pub_market_projections_hap_reject,Daily_2_and_1days_Ago,36
+DEV.RAW.NMMS_pub_market_projections_wap_reject,Daily_2_and_1days_Ago,37
+DEV.RAW.NMMS_pub_pmrc_reject,Daily_2_and_1days_Ago,38
+DEV.RAW.NMMS_pub_realtime_dispatch_prices_and_schedules_reject,Daily_2_and_1days_Ago,39
+DEV.RAW.NMMS_pub_realtime_dispatch_reserve_schedules_reject,Daily_2_and_1days_Ago,40
+DEV.RAW.NMMS_pub_regional_summary_dap_reject,Daily_2_and_1days_Ago,41
+DEV.RAW.NMMS_pub_regional_summary_hap_reject,Daily_2_and_1days_Ago,42
+DEV.RAW.NMMS_pub_regional_summary_rtd_reject,Set_Date_Daily_2_and_1days_Ago,43
+DEV.RAW.NMMS_pub_regional_summary_wap_reject,Daily_2_and_1days_Ago,44
+DEV.RAW.NMMS_pub_security_limit_dap_reject,Daily_2_and_1days_Ago,45
+DEV.RAW.NMMS_pub_security_limit_hap_reject,Daily_2_and_1days_Ago,46
+DEV.RAW.NMMS_pub_security_limit_rtd_reject,Set_Date_Daily_2_and_1days_Ago,47
+DEV.RAW.NMMS_pub_security_limit_wap_reject,Daily_2_and_1days_Ago,48
+DEV.RAW.NMMS_RTDLMP,NOT FOUND,49
+DEV.RAW.NMMS_RTDREGIONALSUMMARY,NOT FOUND,50
+DEV.RAW.NMMS_RTDRESERVESCHEDULE,NOT FOUND,51
+DEV.RAW.NMMS_RTDSCHEDULES,NOT FOUND,52
+DEV.RAW.NMMS_TIPCLMP,NOT FOUND,53
+DEV.RAW.NMMS_PUB_MOT_FILES,Daily,54
+DEV.RAW.NMMS_ORIGINAL_LWAP,Daily,55
+DEV.RAW.NMMS_PUB_OUTAGE_SCHEDULE_RTD,Set_Date_Daily,56
