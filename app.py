@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from pathlib import Path
 import os
 import re
 from io import BytesIO
@@ -238,112 +239,17 @@ st.markdown("Paste your ticket text below — no file upload needed.")
 # ---------------------------------------------------------------------------
 # MAPPING RULES (unchanged from original logic)
 # ---------------------------------------------------------------------------
-raw_mapping_text = r"""
-DEV.RAW.NMMS_dcsresourcecompliance	NOT FOUND
-DEV.RAW.NMMS_DIPCLMP	NOT FOUND
-DEV.RAW.NMMS_MPLMP_DAP	NOT FOUND
-DEV.RAW.NMMS_MPLMP_HAP	NOT FOUND
-DEV.RAW.NMMS_MPLMP_WAP	NOT FOUND
-DEV.RAW.NMMS_MPREGIONALSUMMARY_DAP	NOT FOUND
-DEV.RAW.NMMS_MPREGIONALSUMMARY_HAP	NOT FOUND
-DEV.RAW.NMMS_MPREGIONALSUMMARY_WAP	NOT FOUND
-DEV.RAW.NMMS_MPRESERVESCHEDULE_DAP	NOT FOUND
-DEV.RAW.NMMS_MPRESERVESCHEDULE_HAP	NOT FOUND
-DEV.RAW.NMMS_MPRESERVESCHEDULE_WAP	NOT FOUND
-DEV.RAW.NMMS_MPSCHEDULES_DAP	NOT FOUND
-DEV.RAW.NMMS_MPSCHEDULES_HAP	NOT FOUND
-DEV.RAW.NMMS_MPSCHEDULES_WAP	NOT FOUND
-DEV.RAW.NMMS_occresourcecompliancedetail	NOT FOUND
-DEV.RAW.NMMS_OCCRESOURCECOMPLIANCEHOUR	NOT FOUND
-pub_hvdc_limit_wap	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_constraint_violation_hap
-DEV.RAW.NMMS_pub_constraint_violation_hap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_constraint_violation_rtd
-DEV.RAW.NMMS_pub_constraint_violation_rtd_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_constraint_violation_wap
-DEV.RAW.NMMS_pub_constraint_violation_wap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_gwap
-DEV.RAW.NMMS_pub_gwap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_hvdc_limit_dap
-DEV.RAW.NMMS_pub_hvdc_limit_dap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_hvdc_limit_hap
-DEV.RAW.NMMS_pub_hvdc_limit_hap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_hvdc_limit_rtd
-DEV.RAW.NMMS_pub_hvdc_limit_rtd_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_hvdc_limit_wap
-DEV.RAW.NMMS_pub_hvdc_limit_wap_reject"	Daily_2days_Ago
-"DEV.RAW.NMMS_pub_hvdc_schedules_dap
-DEV.RAW.NMMS_pub_hvdc_schedules_dap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_hvdc_schedules_hap
-DEV.RAW.NMMS_pub_hvdc_schedules_hap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_hvdc_schedules_rtd
-DEV.RAW.NMMS_pub_hvdc_schedules_rtd_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_hvdc_schedules_wap
-DEV.RAW.NMMS_pub_hvdc_schedules_wap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_LWAP
-DEV.RAW.NMMS_pub_LWAP_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_market_bids_and_offer_energy
-DEV.RAW.NMMS_pub_market_bids_and_offer_energy_reject"	7days_Ago
-"DEV.RAW.NMMS_pub_market_bids_and_offer_nomination
-DEV.RAW.NMMS_pub_market_bids_and_offer_nomination_reject"	7days_Ago
-"DEV.RAW.NMMS_pub_market_bids_and_offer_reserve
-DEV.RAW.NMMS_pub_market_bids_and_offer_reserve_reject"	7days_Ago
-"DEV.RAW.NMMS_pub_market_clearing_price
-DEV.RAW.NMMS_pub_market_clearing_price_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_market_projections_dap
-DEV.RAW.NMMS_pub_market_projections_dap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_market_projections_hap
-DEV.RAW.NMMS_pub_market_projections_hap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_market_projections_wap
-DEV.RAW.NMMS_pub_market_projections_wap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_pmrc
-DEV.RAW.NMMS_pub_pmrc_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_realtime_dispatch_prices_and_schedules
-DEV.RAW.NMMS_pub_realtime_dispatch_prices_and_schedules_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_realtime_dispatch_reserve_schedules
-DEV.RAW.NMMS_pub_realtime_dispatch_reserve_schedules_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_regional_summary_dap
-DEV.RAW.NMMS_pub_regional_summary_dap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_regional_summary_hap
-DEV.RAW.NMMS_pub_regional_summary_hap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_regional_summary_rtd
-DEV.RAW.NMMS_pub_regional_summary_rtd_reject"	Set_Date_Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_regional_summary_wap
-DEV.RAW.NMMS_pub_regional_summary_wap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_security_limit_dap
-DEV.RAW.NMMS_pub_security_limit_dap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_security_limit_hap
-DEV.RAW.NMMS_pub_security_limit_hap_reject"	Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_security_limit_rtd
-DEV.RAW.NMMS_pub_security_limit_rtd_reject"	Set_Date_Daily_2_and_1days_Ago
-"DEV.RAW.NMMS_pub_security_limit_wap
-DEV.RAW.NMMS_pub_security_limit_wap_reject"	Daily_2_and_1days_Ago
-DEV.RAW.NMMS_RTDLMP	NOT FOUND
-DEV.RAW.NMMS_RTDREGIONALSUMMARY	NOT FOUND
-DEV.RAW.NMMS_RTDRESERVESCHEDULE	NOT FOUND
-DEV.RAW.NMMS_RTDSCHEDULES	NOT FOUND
-DEV.RAW.NMMS_TIPCLMP	NOT FOUND
-DEV.RAW.NMMS_PUB_MOT_FILES	Daily
-DEV.RAW.NMMS_ORIGINAL_LWAP	Daily
-DEV.RAW.NMMS_PUB_OUTAGE_SCHEDULE_RTD	Set_Date_Daily
-"""
 
-def build_mapping(raw_text):
-    rules = {}
-    for line in [l.strip() for l in raw_text.splitlines() if l.strip()]:
-        parts = re.split(r"\t+", line)
-        if len(parts) == 1:
-            parts = re.split(r"\s{2,}", line)
-        if len(parts) >= 2:
-            key_part = parts[0].strip().strip('"')
-            val_part = parts[-1].strip()
-            keys = [k.strip().strip('"') for k in re.split(r"\n+", key_part) if k.strip()]
-            for k in keys:
-                norm = k.upper()
-                rules[norm] = val_part
-    return rules
+@st.cache_data
+def load_mapping():
+    path = Path(__file__).parent / "mapping_rules.csv"   # adjust path/subfolder to match your repo
+    df = pd.read_csv(path)
+    df["table_name"] = df["table_name"].astype(str).str.strip().str.upper()
+    df["rule"] = df["rule"].astype(str).str.strip()
+    mapping_dict = dict(zip(df["table_name"], df["rule"]))
+    return mapping_dict, df
 
-MAPPING = build_mapping(raw_mapping_text)
+MAPPING, mapping_source_df = load_mapping()
 
 rule_to_days = {
     "DAILY": 0,
